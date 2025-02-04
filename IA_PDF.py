@@ -23,7 +23,7 @@ def Mapfre(text):
     # Search "Total Paid Value"
     total_paid_match = re.search(r"(?:VALOR\s+(?:TOTAL\s+)?PAGADO|TOTAL,?\s+PAGADO)\s+A\s+LA\s+FECHA[^\$]+\$?\s*([\d\.,]+)", text, re.IGNORECASE)
     if total_paid_match:
-        valor = total_paid_match.group(1).replace(".","").replace(",",".")
+        valor = total_paid_match.group(1)
         data["Valor Total Pagado"] = valor
     else:
         data["Valor Total Pagado"] = None
@@ -31,7 +31,7 @@ def Mapfre(text):
     # Search "Coverage"
     coverage_match = re.search(r"TOTAL,?\s+TOPE\s+DE\s+COBERTURA\s+POR\s+GASTOS\s+MÉDICOS[^\$]+\$?\s*([\d\.,]+)", text, re.IGNORECASE)
     if coverage_match:
-        cobertura = coverage_match.group(1).replace(".","").replace(",", ".")
+        cobertura = coverage_match.group(1)
         data["Cobertura"] = cobertura
     else:
         data["Cobertura"] = None
