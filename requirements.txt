@@ -1,0 +1,5 @@
+re
+pdfplumber
+pandas
+streamlit
+io
