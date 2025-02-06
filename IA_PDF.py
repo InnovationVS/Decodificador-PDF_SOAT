@@ -74,10 +74,10 @@ def previsora(text):
     return data
 
 def extract_data(text, pdf_file):
-    if re.search(r"CERTIFICADO DE GASTOS MEDICOS COBERTURA SOAT", text, re.IGNORECASE):
+    if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
         return {**data, "Nombre archivo": pdf_file}
-    elif re.search(r"EL SUSCRITO VICEPRESIDENTE DE INDEMNIZACIONES DE", text, re.IGNORECASE):
+    elif re.search(r"PREVISORA S.A.", text, re.IGNORECASE):
         data = previsora(text)
         return {**data, "Nombre archivo": pdf_file}
     else:
