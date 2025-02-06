@@ -4,6 +4,9 @@ import pandas  as pd
 import streamlit as st
 from io import BytesIO
 
+identificacion = pd.read_excel("Tipo_Documentos.xlsx")
+tipos_identificacion = identificacion["TipoDocumento"].tolist()
+
 def Mapfre(text):
     # Extracción de datos específicos del primer PDF (Certificación)
     data = {}
@@ -43,23 +46,26 @@ def previsora(text):
     data = {}
     
     # Buscar "Nombres y Apellidos"
-    match_names = re.search(r"ACCIDENTADO\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+)\s+CC\s*(\d{7,10})\s+\d{2}-\d{2}-\d{4}\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)(?:\n|$)", text)
+    match_names = re.search(r"ACCIDENTADO\s+(" + "|".join(tipos_identificacion) + r")\s*(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+)\s+\d{2}-\d{2}-\d{4}", text)
+
     if match_names:
-        name_part1 = match_names.group(1).strip()
-        name_part2 = match_names.group(3).strip()
-        data["Nombres y Apellidos"] = f"{name_part1} {name_part2}"
-        data["Identificación"] = match_names.group(2).strip()
+        nombres = match_names.group(3).strip()
+        tipo_doc = match_names.group(1).strip().upper()
+        numero_doc = match_names.group(2).strip()
+        
+        data["Nombres y Apellidos"] = nombres
+        data["Tipo Documento"] = tipo_doc
+        data["Numero Documento"] = numero_doc
+        
     else:
-        match_names = re.search(
-            r"ACCIDENTADO\s+CC\s*(\d{7,10})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+)\s+\d{2}-\d{2}-\d{4}", text, re.IGNORECASE
-        )
-        if match_names:
-            data["Nombres y Apellidos"] = match_names.group(2).strip()
-            data["Identificación"] = match_names.group(1).strip()
+        data["Nombres y Apellidos"] = "No encontrado"
+        data["Tipo Documento"] = "No identificado"
+        data["Numero Documento"] = "No encontrado"
+        
             
             
     #Search "Policy Number"
-    match_poliza = re.search(r"PÓLIZA DESDE HASTA PLACA\s*(\d{16})", text)
+    match_poliza = re.search(r"PÓLIZA DESDE HASTA PLACA\s*(\d{13,16})", text)
     if match_poliza:
         data["Numero de Poliza"] = match_poliza.group(1).strip()
     
