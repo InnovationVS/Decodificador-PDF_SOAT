@@ -79,12 +79,53 @@ def previsora(text):
     
     return data
 
+def sura(text):
+    data = {}
+
+    #Nombres y Apellidos
+    tipos_id = "|".join(map(re.escape, tipos_identificacion))
+    match_names = re.compile(rf"Identificación\s+accidentado\s+.*?({tipos_id})\s+(\d+)\s+([^\d]+?)\s*\d{{2}}-\d{{2}}-\d{{4}}" ,re.DOTALL | re.IGNORECASE)
+    
+    match_names = match_names.search(text)
+    if match_names:
+        data["Nombre y Apellidos"] = match_names.group(3).strip()
+        data["Tipo de documento"] = match_names.group(1)
+        data["Identificación"] = match_names.group(2)
+    else:
+        data["Nombre y Apellidos"] = "No encontrado"
+        data["Tipo de documento"] = "No identificado"
+        data["Identificación"] = "No encontrado"
+    
+    #Numero poliza
+    policy_match = re.search(r"Póliza\s+número\b.*?(\d+)", text, re.DOTALL | re.IGNORECASE)
+    data["Numero de Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
+    
+    #Valores de cobertura
+    total_line_match = re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+UVT\s+(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+(\d{1,3}(?:\.\d{3})*(?:,\d+)?)", text)
+    if total_line_match:
+        data["Cobertura"] = total_line_match.group(2)
+        data["Valor total pagado"] = total_line_match.group(3)
+    else:
+        data["Cobertura"] = "No encontrado"
+        data["Valor total pagado"] = "No encontrado"
+    
+    #Estado de cobertura
+    if "NO" in text and "AGOTADO" in text:
+        data["Estado Cobertura"] = "NO AGOTADO"
+    else:
+        data["Estado Cobertura"] = "AGOTADO"
+    
+    return data
+
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
         return {**data, "Nombre archivo": pdf_file}
     elif re.search(r"PREVISORA S.A.", text, re.IGNORECASE):
         data = previsora(text)
+        return {**data, "Nombre archivo": pdf_file}
+    elif re.search(r"SEGUROS GENERALES SURAMERICANA S.A", text, re.IGNORECASE):
+        data = sura(text)
         return {**data, "Nombre archivo": pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
