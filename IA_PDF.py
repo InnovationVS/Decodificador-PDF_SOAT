@@ -74,12 +74,14 @@ def previsora(text):
     return data
 
 def extract_data(text, pdf_file):
-    if "CERTIFICACION" in pdf_file or "CARTA" in pdf_file:
-        return Mapfre(text)
-    elif "Report_" in pdf_file:
-        return previsora(text)
+    if re.search(r"CERTIFICADO DE GASTOS MEDICOS COBERTURA SOAT", text, re.IGNORECASE):
+        data = Mapfre(text)
+        return {**data, "Nombre archivo": pdf_file}
+    elif re.search(r"EL SUSCRITO VICEPRESIDENTE DE INDEMNIZACIONES DE", text, re.IGNORECASE):
+        data = previsora(text)
+        return {**data, "Nombre archivo": pdf_file}
     else:
-        raise ValueError("Formato de PDF no reconocido")
+        raise ValueError("No se puedo identificar nombre de SOAT")
 
 def main():
     st.title("Procesador de PDFs SOAT")
