@@ -124,6 +124,27 @@ def sura(text):
     
     return data
 
+def hdi(text):
+    data = {}
+    
+    # Nombres y apellidos
+    match_names = re.search(r"Nombre de la víctima:\s*([A-ZÁÉÍÓÚÑ ]+)", text, re.IGNORECASE)
+    data["Nombres y Apellidos"] = match_names.group(1) if match_names else "No encontrado"
+    
+    #Identificación
+    match_id = re.search(r"Número Id víctima:\s*(\d+)", text, re.IGNORECASE)
+    data["Identificacion"] = match_id.group(1) if match_id else "No encontrado"
+    
+    #Poliza
+    policy_match = re.search(r"Póliza:\s*(\d+)", text, re.IGNORECASE)
+    data["Numero Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
+    
+    #Valor total pagado
+    total_paid_match = re.search(r"Valor\s*total\s*pagado\s*:\s*\$\s*([\d.,]+)", text, re.IGNORECASE)
+    data["Valor Total Pagado"] = total_paid_match.group(1) if total_paid_match else "No encontrado"
+    
+    return data
+
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
@@ -133,6 +154,9 @@ def extract_data(text, pdf_file):
         return {**data, "Nombre archivo": pdf_file}
     elif re.search(r"SEGUROS GENERALES SURAMERICANA S.A", text, re.IGNORECASE):
         data = sura(text)
+        return {**data, "Nombre archivo": pdf_file}
+    elif re.search(r"HDI SEGUROS COLOMBIA", text, re.IGNORECASE):
+        data = hdi(text)
         return {**data, "Nombre archivo": pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
