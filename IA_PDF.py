@@ -149,11 +149,11 @@ def indemnizaciones(text):
     data = {}
     
     #Nombres y apellidos
-    name_match = re.search(r"(?:La señora|El señor)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ ]+),\s+identificada con", text, re.IGNORECASE)
+    name_match = re.search(r"(?:La señora|El señor)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ ]+),\s*identificad[ao] con", text, re.IGNORECASE)
     data["Nombres y Apellidos"] = name_match.group(1).strip() if name_match else "No encontrado"
     
     #Identificación
-    id_match= re.search(r"Cédula de\s+Ciudadanía[\s\n]*([\d.,]+)", text, re.IGNORECASE)
+    id_match= re.search(r"Cédula de\s+Ciudadanía[\s\n]*([\d\.,]+)", text, re.IGNORECASE)
     data["Identificacion"] = id_match.group(1).replace(".", "") if id_match else "No encontrado"
     
     #Poliza
