@@ -145,6 +145,27 @@ def hdi(text):
     
     return data
 
+def indemnizaciones(text):
+    data = {}
+    
+    #Nombres y apellidos
+    name_match = re.search(r"(?:La señora|El señor)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ ]+),\s+identificada con", text, re.IGNORECASE)
+    data["Nombres y Apellidos"] = name_match.group(1).strip() if name_match else "No encontrado"
+    
+    #Identificación
+    id_match= re.search(r"Cédula de\s+Ciudadanía[\s\n]*([\d.,]+)", text, re.IGNORECASE)
+    data["Identificacion"] = id_match.group(1).replace(".", "") if id_match else "No encontrado"
+    
+    #Poliza
+    policy_match = re.search(r"POLIZA SOAT No\.\s*(\d+)", text,re.IGNORECASE)
+    data["Numero Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
+    
+    #Gastos medicos
+    no_present_match = re.search(r"NO HA PRESENTADO PAGOS POR CONCEPTOS DE GASTOS MEDICOS", text, re.IGNORECASE)
+    data["Concepto Gastos"] = "NO HA PRESENTADO GASTOS MÉDICOS" if no_present_match else "No encontrado"
+
+    return data
+
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
@@ -158,6 +179,9 @@ def extract_data(text, pdf_file):
     elif re.search(r"HDI SEGUROS COLOMBIA", text, re.IGNORECASE):
         data = hdi(text)
         return {**data, "Nombre archivo": pdf_file}
+    elif re.search(r"INDEMNIZACIONES SOAT", text, re.IGNORECASE):
+        data= indemnizaciones(text)
+        return {**data, "Nombre archivo":pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
 
