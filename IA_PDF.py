@@ -18,13 +18,13 @@ def Mapfre(text):
     # Search "ID"
     id_match = re.search(r"IDENTIFICACIÓN DE ACCIDENTADO\s*(?:C\.C\s*)?([\d\.]+)", text)
     data["Identificación"] = id_match.group(1) if id_match else None
-    
+        
     # Search "Policy Number"
     policy_match = re.search(r"p[oó]liza\s+SOAT\s+expedida\s+por\s+(?:nuestra\s+aseguradora|nuestra\s+entidad)\s+bajo\s+el\s+n[uú]mero\s+(\d+)", text, re.IGNORECASE)
     data["Numero de Poliza"] = policy_match.group(1) if policy_match else None
         
     # Search "Total Paid Value"
-    total_paid_match = re.search(r"(?:VALOR\s+(?:TOTAL\s+)?PAGADO|TOTAL,?\s+PAGADO)\s+A\s+LA\s+FECHA[^\$]+\$?\s*([\d\.,]+)", text, re.IGNORECASE)
+    total_paid_match = re.search(r"(?:TOTAL|VALOR)\s+(?:LIQUIDADO|PAGADO|CANCELADO)[^$]*\$\s*([\d\.,]+)", text, re.IGNORECASE)
     if total_paid_match:
         valor = total_paid_match.group(1)
         data["Valor Total Pagado"] = valor
@@ -32,12 +32,19 @@ def Mapfre(text):
         data["Valor Total Pagado"] = None
     
     # Search "Coverage"
-    coverage_match = re.search(r"TOTAL,?\s+TOPE\s+DE\s+COBERTURA\s+POR\s+GASTOS\s+MÉDICOS[^\$]+\$?\s*([\d\.,]+)", text, re.IGNORECASE)
+    coverage_match = re.search(r"TOPE\s+DE\s+COBERTURA[^$]+\$\s*([\d\.,]+)", text, re.IGNORECASE)
     if coverage_match:
         cobertura = coverage_match.group(1)
         data["Cobertura"] = cobertura
     else:
         data["Cobertura"] = None
+    
+    valor_total = int(data["Valor Total Pagado"].replace(".", "") if data["Valor Total Pagado"] else 0)
+    total_cobertura = int(data["Cobertura"].replace(".", "") if data["Cobertura"] else 0)
+    if valor_total < total_cobertura:
+        data["Estado Cobertura"] = "NO AGOTADO"
+    else:
+        data["Estado Cobertura"] = "AGOTADO"
         
     return data
 
