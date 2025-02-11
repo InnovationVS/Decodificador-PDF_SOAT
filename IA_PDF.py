@@ -24,7 +24,7 @@ def Mapfre(text):
     data["Numero de Poliza"] = policy_match.group(1) if policy_match else None
         
     # Search "Total Paid Value"
-    total_paid_match = re.search(r"(?:TOTAL|VALOR|TOTAL,)\s+(?:LIQUIDADO|PAGADO|CANCELADO)[^$]*\$\s*([\d\.,]+)", text, re.IGNORECASE)
+    total_paid_match = re.search(r"(?:TOTAL|VALOR|TOTAL,)\s+(?:LIQUIDADO|PAGADO|CANCELADO|RECLAMADO)[^$]*\$\s*([\d\.,]+)", text, re.IGNORECASE)
     if total_paid_match:
         valor = total_paid_match.group(1)
         data["Valor Total Pagado"] = valor
