@@ -91,11 +91,11 @@ def sura(text):
 
     #Nombres y Apellidos
     tipos_id = "|".join(map(re.escape, tipos_identificacion))
-    match_names = re.compile(rf"Identificación\s+accidentado\s+.*?({tipos_id})\s+(\d+)\s+([^\d]+?)\s*\d{{2}}-\d{{2}}-\d{{4}}" ,re.DOTALL | re.IGNORECASE)
+    match_names = re.compile(rf"(?:Identificación\s+accidentado\s+.*?)?({tipos_id})\s+(\d+)\s+([^\d]+?)\s*\d{{2}}-\d{{2}}-\d{{4}}" ,re.DOTALL | re.IGNORECASE)
     
     match_names = match_names.search(text)
     if match_names:
-        data["Nombre y Apellidos"] = match_names.group(3).strip()
+        data["Nombres y Apellidos"] = match_names.group(3).strip()
         data["Tipo de documento"] = match_names.group(1)
         data["Identificación"] = match_names.group(2)
     else:
