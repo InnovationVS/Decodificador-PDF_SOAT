@@ -52,34 +52,52 @@ def previsora(text):
     # Extracción de datos específicos del segundo PDF (Report)
     data = {}
     
-    # Buscar "Nombres y Apellidos"
-    match_names = re.search(r"(?:ACCIDENTADO\s+)?(" + "|".join(map(re.escape, tipos_identificacion)) + r")\s*(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)\s+\d{2}-\d{2}-\d{4}", text)
-    if match_names:
-        nombres = match_names.group(3).strip()
-        tipo_doc = match_names.group(1).strip().upper()
-        numero_doc = match_names.group(2).strip()
+    # Buscar "Nombres y Apellidos" new format
+    match_names_old = re.search(r"\b(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL)
     
-        data["Nombres y Apellidos"] = nombres
-        data["Tipo Documento"] = tipo_doc
-        data["Numero Documento"] = numero_doc
-    
+    if match_names_old:
+        data["Nombres y Apellidos"] = match_names_old.group(3).strip()
+        data["Tipo Documento"] = match_names_old.group(1).strip().upper()
+        data["Numero de Documento"] = match_names_old.group(2).strip()
     else:
-        data["Nombres y Apellidos"] = "No encontrado"
-        data["Tipo Documento"] = "No identificado"
-        data["Numero Documento"] = "No encontrado"
+        match_names_new= re.search(
+            r"([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\n"  +
+            r"\s*(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s*\n" +
+            r"([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)",
+            text,
+            re.DOTALL
+        )
+        if match_names_new:
+            nombre = f"{match_names_new.group(1).strip()} {match_names_new.group(4).strip()}"
+            # nombre = re.sub(r"\n.*", "", nombre)
+            data["Nombres y Apellidos"] = nombre
+            data["Tipo Documento"] = match_names_new.group(2).strip().upper()
+            data["Numero de Documento"] = match_names_new.group(3).strip()
+        else:
+            data["Nombres y Apellidos"] = "No encontrado"
+            
+            doc_match= re.search(
+                r"\b(" + "|".join(map(re.escape, tipos_identificacion)) + r")\s*(\d{5,15})",
+                text
+            )
+            if doc_match:
+                data["Tipo Documento"] = doc_match.group(1).strip().upper()
+                data["Numero de Documento"] = doc_match.group(2).strip()
     
-    # Buscar "Policy Number"
-    match_poliza = re.search(r"PÓLIZA DESDE HASTA PLACA\s*(\d{13,16})", text)
-    if match_poliza:
-        data["Numero de Poliza"] = match_poliza.group(1).strip()
+    match_policy = re.search(
+        r"PÓLIZA DESDE HASTA PLACA\s*(\d{13,16})", text
+    )
+    if match_policy:
+        data["Numero de Poliza"] = match_policy.group(1).strip()
+    else:
+        data["Numero de Poliza"] = "No encontrado"
     
-    # Buscar "Coverage"
     if "NO HA AGOTADO" in text:
         data["Cobertura"] = "NO HA AGOTADO"
     elif "HA AGOTADO" in text:
         data["Cobertura"] = "HA AGOTADO"
     else:
-        data["Cobertura"] = None
+        data["Cobertura"] = "No encontrado"
     
     return data
 
@@ -201,6 +219,37 @@ def bolivar(text):
     
     return data
 
+def seg_mundial(text):
+    data = {}
+    
+    #NOMBRE Y APELLIDOS
+    name_last_match = re.findall(
+        r"([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)\s+"  # Apellidos
+        r"GASTOS (?:DE|MEDICOS)\s+\d{2}/\d{2}/\d{4}\s+" 
+        r"\d{4}-\d{8}-\s+\d{2}-\d{4}-\d+\s+COBERTURA\s+[\d.,]+\s*"  # Póliza y valores
+        r"(?:[\d.,]+\s+)?"  
+        r"((?:[A-ZÁÉÍÓÚÑ]+\s?)+?)\s+"  # Nombre
+        r"\d+\s+(NO AGOTADA|AGOTADA)", 
+        text, re.DOTALL)
+    if name_last_match:
+        apellidos, nombres,estado = name_last_match[0]
+        nombres = re.sub(r"\s+TRANSPORTE$", "", nombres).strip()
+        if nombres == "TRANSPORTE":
+            nombres = "No encontrado"
+        data["Apellidos"] = apellidos.strip()
+        data["Nombres"] = nombres.strip()
+        data["Estado Cobertura"] = estado.strip()
+    else:
+        data["Apellidos"] = "No Encontrado"
+        data["Nombres"] = "No Encontrado"
+        data["Estado Cobertura"] = "No encontrado"
+    
+    #Numero Poliza
+    policy_match = re.search(r"(?P<poliza>\d{4}-\d{8}-)", text, re.IGNORECASE)
+    data["Numero de Poliza"] = policy_match.group().strip() if policy_match else "No encontrado"
+    
+    return data
+
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
@@ -219,6 +268,9 @@ def extract_data(text, pdf_file):
         return {**data, "Nombre archivo":pdf_file}
     elif re.search(r"SEGUROS\s+BOLIVAR\b.*?S\.A\.", text, re.IGNORECASE|re.DOTALL):
         data = bolivar(text)
+        return {**data, "Nombre archivo":pdf_file}
+    elif re.search(r"SEGUROS MUNDIAL", text, re.IGNORECASE):
+        data = seg_mundial(text)
         return {**data, "Nombre archivo":pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
