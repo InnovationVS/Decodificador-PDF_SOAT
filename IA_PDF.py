@@ -167,7 +167,7 @@ def sura(text):
         data["Estado Cobertura"] = "AGOTADO"
         
     # Search Accident Date
-    date_match = re.search(r"Fecha\s*accidente\s*.*(\d{2}[-/]\d{2}[-/]\d{4})", text, re.IGNORECASE | re.DOTALL)
+    date_match = re.search(rf"INFORMACIÓN DEL ACCIDENTADO.*?(?:Fecha\s*accidente\s*.*?|(?:{tipos_id})\s+\d+.*?)(\d{{2}}[-/]\d{{2}}[-/]\d{{4}})", text, re.IGNORECASE | re.DOTALL)
     data["Fecha Siniestro"] = date_match.group(1) if date_match else "No encontrado"
     
     return data
