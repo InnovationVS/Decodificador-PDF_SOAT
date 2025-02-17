@@ -16,7 +16,7 @@ def Mapfre(text):
     data["Nombres y Apellidos"] = names_match.group(1).strip() if names_match else None
     
     # Search "ID"
-    id_match = re.search(r"IDENTIFICACIÓN DE ACCIDENTADO\s*(?:C\.C\s*)?([\d\.]+)", text)
+    id_match = re.search(r"IDENTIFICACIÓN DE ACCIDENTADO\s*(?:C\.?C\s*)?([\d\.]+)", text)
     data["Identificación"] = id_match.group(1) if id_match else None
         
     # Search "Policy Number"
@@ -45,6 +45,9 @@ def Mapfre(text):
         data["Estado Cobertura"] = "NO AGOTADO"
     else:
         data["Estado Cobertura"] = "AGOTADO"
+    
+    date_match = re.search(r"FECHA DEL ACCIDENTE\s+(\d{2}/\d{2}/\d{4})", text)
+    data["Fecha Siniestro"] = date_match.group(1).strip()
         
     return data
 
@@ -65,10 +68,10 @@ def previsora(text):
             data["Tipo Documento"] = match_names_old.group(1).strip().upper()
             data["Numero de Documento"] = match_names_old.group(2).strip()
         else:
-            match_ven = re.search(r"ACCIDENTADO\s*\n?AS\s*(VEN\d+)\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL) 
+            match_ven = re.search(r"ACCIDENTADO.*?(MS|AS|CC|TI)\s+(VEN\d+)\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL) 
             if match_ven:
-                data["Nombres y Apellidos"] = match_ven.group(2).strip()
-                data["Numero de Documento"] = match_ven.group(1).strip()
+                data["Nombres y Apellidos"] = match_ven.group(3).strip()
+                data["Numero de Documento"] = match_ven.group(2).strip()
                 
                 doc_match = re.search(
                     r"\b(" + "|".join(map(re.escape, tipos_identificacion)) + r")\b",
@@ -120,6 +123,10 @@ def previsora(text):
         data["Cobertura"] = "HA AGOTADO"
     else:
         data["Cobertura"] = "No encontrado"
+    
+    #Search "Accident Date"
+    date_match = re.search("(\d{2}-\d{2}-\d{4})(?:\s*\$|$)", text, re.MULTILINE)
+    data["Fecha Siniestro"] = date_match.group(1).strip()
     
     return data
 
