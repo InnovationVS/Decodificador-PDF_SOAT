@@ -175,24 +175,28 @@ def sura(text):
 def hdi(text):
     data = {}
     
-    # Nombres y apellidos
+    # Search Names and Lastnames
     match_names = re.search(r"Nombre de la víctima:\s*([A-ZÁÉÍÓÚÑ ]+)", text, re.IGNORECASE)
     data["Nombres y Apellidos"] = match_names.group(1) if match_names else "No encontrado"
     
-    #Identificación
+    # Search number ID
     match_id = re.search(r"Número Id víctima:\s*(\d+)", text, re.IGNORECASE)
-    data["Identificacion"] = match_id.group(1) if match_id else "No encontrado"
+    data["Identificacion"] = match_id.group(1).replace(".", "") if match_id else "No encontrado"
     
-    #Poliza
+    # Search Policy Number
     policy_match = re.search(r"Póliza:\s*(\d+)", text, re.IGNORECASE)
     data["Numero Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
     
-    #Valor total pagado
+    # Search Total Value
     total_paid_match = re.search(r"Valor\s*total\s*pagado\s*:\s*\$\s*([\d.,]+)", text, re.IGNORECASE)
     data["Valor Total Pagado"] = total_paid_match.group(1) if total_paid_match else "No encontrado"
     
+    # Search Accident Date
+    date_match = re.search("(?i)Fecha\s*(?:de\s*)?accidente\s*:?\s*(\d{2}[-/]\d{2}[-/]\d{4})", text)
+    data["Fecha Siniestro"] = date_match.group(1) if date_match else "No encontrado"
+    
     return data
-
+    
 def indemnizaciones(text):
     data = {}
     
