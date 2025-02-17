@@ -47,7 +47,7 @@ def Mapfre(text):
         data["Estado Cobertura"] = "AGOTADO"
     
     date_match = re.search(r"FECHA DEL ACCIDENTE\s+(\d{2}/\d{2}/\d{4})", text)
-    data["Fecha Siniestro"] = date_match.group(1).strip()
+    data["Fecha Siniestro"] = date_match.group(1).strip() if date_match else "No encontrado"
         
     return data
 
@@ -126,14 +126,14 @@ def previsora(text):
     
     #Search "Accident Date"
     date_match = re.search("(\d{2}-\d{2}-\d{4})(?:\s*\$|$)", text, re.MULTILINE)
-    data["Fecha Siniestro"] = date_match.group(1).strip()
+    data["Fecha Siniestro"] = date_match.group(1).strip() if date_match else "No encontrado"
     
     return data
 
 def sura(text):
     data = {}
 
-    #Nombres y Apellidos
+    #Search Names and Lastnames
     tipos_id = "|".join(map(re.escape, tipos_identificacion))
     match_names = re.compile(rf"(?:Identificación\s+accidentado\s+.*?)?({tipos_id})\s+(\d+)\s+([^\d]+?)\s*\d{{2}}-\d{{2}}-\d{{4}}" ,re.DOTALL | re.IGNORECASE)
     
@@ -147,11 +147,11 @@ def sura(text):
         data["Tipo de documento"] = "No identificado"
         data["Identificación"] = "No encontrado"
     
-    #Numero poliza
-    policy_match = re.search(r"Póliza\s+número\b.*?(\d+)", text, re.DOTALL | re.IGNORECASE)
-    data["Numero de Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
+    #Search a Number Policy
+    policy_match = re.search(r"(\d{8,12})", text)
+    data["Numero de Poliza"] = policy_match.group() if policy_match else "No encontrado"
     
-    #Valores de cobertura
+    #Search a value coverage
     total_line_match = re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+UVT\s+(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+(\d{1,3}(?:\.\d{3})*(?:,\d+)?)", text)
     if total_line_match:
         data["Cobertura"] = total_line_match.group(2)
@@ -160,11 +160,15 @@ def sura(text):
         data["Cobertura"] = "No encontrado"
         data["Valor total pagado"] = "No encontrado"
     
-    #Estado de cobertura
+    #Search Coverage Status
     if "NO" in text and "AGOTADO" in text:
         data["Estado Cobertura"] = "NO AGOTADO"
     else:
         data["Estado Cobertura"] = "AGOTADO"
+        
+    # Search Accident Date
+    date_match = re.search(r"Fecha\s*accidente\s*.*(\d{2}[-/]\d{2}[-/]\d{4})", text, re.IGNORECASE | re.DOTALL)
+    data["Fecha Siniestro"] = date_match.group(1) if date_match else "No encontrado"
     
     return data
 
