@@ -53,40 +53,57 @@ def previsora(text):
     data = {}
     
     # Buscar "Nombres y Apellidos" new format
-    match_names_old = re.search(r"\b(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL)
+    match_names_old = re.search(r"\b(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ0-9\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL)
     
     if match_names_old:
         data["Nombres y Apellidos"] = match_names_old.group(3).strip()
         data["Tipo Documento"] = match_names_old.group(1).strip().upper()
         data["Numero de Documento"] = match_names_old.group(2).strip()
     else:
-        match_names_new= re.search(
-            r"([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\n"  +
-            r"\s*(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s*\n" +
-            r"([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)",
-            text,
-            re.DOTALL
-        )
-        if match_names_new:
-            nombre = f"{match_names_new.group(1).strip()} {match_names_new.group(4).strip()}"
-            # nombre = re.sub(r"\n.*", "", nombre)
-            data["Nombres y Apellidos"] = nombre
-            data["Tipo Documento"] = match_names_new.group(2).strip().upper()
-            data["Numero de Documento"] = match_names_new.group(3).strip()
-        else:
-            data["Nombres y Apellidos"] = "No encontrado"
+        match_ven = re.search(r"ACCIDENTADO\s*\n?AS\s*(VEN\d+)\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL) 
+        if match_ven:
+            data["Nombres y Apellidos"] = match_ven.group(2).strip()
+            data["Numero de Documento"] = match_ven.group(1).strip()
             
-            doc_match= re.search(
-                r"\b(" + "|".join(map(re.escape, tipos_identificacion)) + r")\s*(\d{5,15})",
-                text
+            doc_match = re.search(
+                r"\b(" + "|".join(map(re.escape, tipos_identificacion)) + r")\b",
+                match_ven.group(0)
             )
             if doc_match:
                 data["Tipo Documento"] = doc_match.group(1).strip().upper()
-                data["Numero de Documento"] = doc_match.group(2).strip()
-    
+            else:
+                data["Tipo Documento"] = "No encontrado"
+        else:
+            tipos_regex= "|".join(map(re.escape, tipos_identificacion))
+            match_split_n = re.search(
+                r"ACCIDENTADO(?:\s+VÍCTIMA\s+SINIESTRO)?\s*\n"
+                r"(?P<nombre1>[A-ZÁÉÍÓÚÑ\s]+)"                      # Primera línea del nombre
+                r"(?:\n(?P<nombre2>(?!(" + tipos_regex + r")\b)[A-ZÁÉÍÓÚÑ\s]+))?"  # Segunda línea opcional del nombre
+                r"\n\s*(?P<tipo>(" + tipos_regex + r"))\s*(?P<num>\d{5,15})"  # Línea con tipo y número
+                r"(?:\s*\n\s*(?P<nombre3>[A-ZÁÉÍÓÚÑ\s]+))?",
+                text,
+                re.DOTALL
+            )
+            if match_split_n:
+                nombre = match_split_n.group("nombre1").strip()
+                if match_split_n.group("nombre2"):
+                        nombre += " " + match_split_n.group("nombre2").strip()
+                if match_split_n.group("nombre3"):
+                    nombre += " " + match_split_n.group("nombre3").strip()
+                data["Nombres y Apellidos"] = nombre
+                data["Tipo Documento"] = match_split_n.group("tipo").strip().upper()
+                data["Numero de Documento"] = match_split_n.group("num").strip()
+            else:
+                data.update({
+                    "Nombres y Apellidos": "No encontrado",
+                    "Tipo Documento": "No encontrado",
+                    "Numero de Documento": "No encontrado"
+                })
     match_policy = re.search(
-        r"PÓLIZA DESDE HASTA PLACA\s*(\d{13,16})", text
+        r"PÓLIZA DESDE HASTA PLACA\s*(\d{13,16})", 
+        text
     )
+    
     if match_policy:
         data["Numero de Poliza"] = match_policy.group(1).strip()
     else:
