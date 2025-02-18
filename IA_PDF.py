@@ -263,31 +263,29 @@ def bolivar(text):
 def seg_mundial(text):
     data = {}
     
-    #NOMBRE Y APELLIDOS
-    name_last_match = re.findall(
-        r"([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)\s+"  # Apellidos
-        r"GASTOS (?:DE|MEDICOS)\s+\d{2}/\d{2}/\d{4}\s+" 
-        r"\d{4}-\d{8}-\s+\d{2}-\d{4}-\d+\s+COBERTURA\s+[\d.,]+\s*"  # Póliza y valores
-        r"(?:[\d.,]+\s+)?"  
-        r"((?:[A-ZÁÉÍÓÚÑ]+\s?)+?)\s+"  # Nombre
-        r"\d+\s+(NO AGOTADA|AGOTADA)", 
-        text, re.DOTALL)
-    if name_last_match:
-        apellidos, nombres,estado = name_last_match[0]
-        nombres = re.sub(r"\s+TRANSPORTE$", "", nombres).strip()
-        if nombres == "TRANSPORTE":
-            nombres = "No encontrado"
-        data["Apellidos"] = apellidos.strip()
-        data["Nombres"] = nombres.strip()
-        data["Estado Cobertura"] = estado.strip()
+    #Search Names and Lastnames
+    name_last_match = re.compile(
+        r"(?:^|\n)([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)(?:\s+GASTOS (?:DE|MEDICOS))(?:(?!GASTOS)[^\n]*)\n?([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)?",
+        re.MULTILINE | re.DOTALL)
+    name_match = name_last_match.search(text)
+    if name_match:
+        name_complete = " ".join(filter(None, [name_match.group(1), name_match.group(2)])).strip()
+        name_complete = re.sub(r"\b(TRANSPORTE|GERENTE|DE|1)\b", "", name_complete).strip()
+        data={"Nombre Completo": name_complete}
     else:
-        data["Apellidos"] = "No Encontrado"
-        data["Nombres"] = "No Encontrado"
-        data["Estado Cobertura"] = "No encontrado"
+        data = {"Nombre Completo": "No Encontrado"}
+        
+    #Search a Coverage Status
+    status_match = re.search(r"(?i)GASTOS MEDICOS.*?\n.*?(NO AGOTADA|AGOTADA)", text, re.MULTILINE)
+    data["Estado Cobertura"] = status_match.group(1) if status_match else "No encontrado"
     
-    #Numero Poliza
+    #Search a policy Number
     policy_match = re.search(r"(?P<poliza>\d{4}-\d{8}-)", text, re.IGNORECASE)
     data["Numero de Poliza"] = policy_match.group().strip() if policy_match else "No encontrado"
+    
+    #Search a Accident Date
+    date_match = re.search("GASTOS MEDICOS\s+(\d{2}/\d{2}/\d{4})", text)
+    data["Fecha Siniestro"] = date_match.group(1).strip() if date_match else "No encontrado"
     
     return data
 
