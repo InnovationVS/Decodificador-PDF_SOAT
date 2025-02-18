@@ -298,7 +298,7 @@ def extract_data(text, pdf_file):
     elif re.search(r"PREVISORA S.A.", text, re.IGNORECASE):
         data = previsora(text)
         return {**data, "Nombre archivo": pdf_file}
-    elif re.search(r"SEGUROS GENERALES SURAMERICANA S.A", text, re.IGNORECASE):
+    elif re.search(r"SURAMERICANA S.A", text, re.IGNORECASE):
         data = sura(text)
         return {**data, "Nombre archivo": pdf_file}
     elif re.search(r"HDI SEGUROS COLOMBIA", text, re.IGNORECASE):
