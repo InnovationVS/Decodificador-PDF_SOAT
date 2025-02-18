@@ -250,9 +250,13 @@ def bolivar(text):
     valor_pagado = int(data["Valor Pagado"].replace(".", ""))
     cobertura = int(data["Cobertura"].replace(".", ""))
     if valor_pagado > cobertura:
-        return {**data, "Estado cobertura": "AGOTADO"}
+        data["Estado Cobertura"] = "AGOTADO"
     else:
-        return {**data, "Estado cobertura": "NO AGOTADO"}
+        data["Estado Cobertura"] = "NO AGOTADO"
+    
+    # Search accident Date
+    match_date = re.search(r"Fecha Accidente.*?(\d{2}-\d{2}-\d{4})", text, re.DOTALL)
+    data["Fecha Siniestro"] = match_date.group(1) if match_date else "No encontrado"
     
     return data
 
