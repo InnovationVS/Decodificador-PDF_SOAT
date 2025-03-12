@@ -7,8 +7,10 @@ from io import BytesIO
 identificacion = pd.read_excel("Tipo_Documentos.xlsx")
 tipos_identificacion = identificacion["TipoDocumento"].tolist()
 
+# Character identification of different SOAT Entities 
+
 def Mapfre(text):
-    # Extracción de datos específicos del primer PDF (Certificación)
+    # Extraction of specific data from the first PDF (Certification)
     data = {}
     
     # Search "Names and LastName"
@@ -52,7 +54,7 @@ def Mapfre(text):
     return data
 
 def previsora(text):
-    # Extracción de datos específicos del segundo PDF (Report)
+    # Extraction of specific data from the second PDF (Report)
     data = {}
     
     match_new_id = re.search(r"(AS|ERI|[A-Z]{2})\s*(\d+[A-Z]\d+|\d{8}[A-Z]{2})", text)
@@ -60,7 +62,7 @@ def previsora(text):
         data["Tipo Documento"] = match_new_id.group(1).strip().upper()
         data["Numero de Documento"] = match_new_id.group(2).strip()
     else:
-    # Buscar "Nombres y Apellidos" new format
+    # Search "Name and Last Name" new format
         match_names_old = re.search(r"\b(" + "|".join(tipos_identificacion) + r")\s+(\d{5,15})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ0-9\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.DOTALL)
         
         if match_names_old:
@@ -77,6 +79,7 @@ def previsora(text):
                     r"\b(" + "|".join(map(re.escape, tipos_identificacion)) + r")\b",
                     match_ven.group(0)
                 )
+                # Puts the type of document concerned
                 if doc_match:
                     data["Tipo Documento"] = doc_match.group(1).strip().upper()
                 else:
@@ -196,23 +199,23 @@ def hdi(text):
     data["Fecha Siniestro"] = date_match.group(1) if date_match else "No encontrado"
     
     return data
-    
+
 def indemnizaciones(text):
     data = {}
     
-    #Nombres y apellidos
+    # Search Names and Last Names
     name_match = re.search(r"(?:La señora|El señor)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ ]+),\s*identificad[ao] con", text, re.IGNORECASE)
     data["Nombres y Apellidos"] = name_match.group(1).strip() if name_match else "No encontrado"
     
-    #Identificación
+    # Search ID
     id_match= re.search(r"Cédula de\s+Ciudadanía[\s\n]*([\d\.,]+)", text, re.IGNORECASE)
     data["Identificacion"] = id_match.group(1).replace(".", "") if id_match else "No encontrado"
     
-    #Poliza
+    # Search policy number
     policy_match = re.search(r"POLIZA SOAT No\.\s*(\d+)", text,re.IGNORECASE)
     data["Numero Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
     
-    #Gastos medicos
+    # Search Medical expenses
     no_present_match = re.search(r"NO HA PRESENTADO PAGOS POR CONCEPTOS DE GASTOS MEDICOS", text, re.IGNORECASE)
     data["Concepto Gastos"] = "NO HA PRESENTADO GASTOS MÉDICOS" if no_present_match else "No encontrado"
 
@@ -221,7 +224,7 @@ def indemnizaciones(text):
 def bolivar(text):
     data = {}
     
-    #Nombres, Appellidos y Tipo de identificación
+    #Search names, last names and type of ID
     name_match = re.search(r"([A-Z]{2,})\s+(\d+)\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+\d{2}-\d{2}-\d{4}", text, re.IGNORECASE | re.DOTALL)
     if name_match:
         data["Nombres y Apellidos"] = name_match.group(3).strip()
@@ -234,11 +237,11 @@ def bolivar(text):
             "Tipo Identificación": "No Encontrado"
         })
     
-    #Numero de poliza
+    # Search number policy
     policy_match = re.search(r"(?:Póliza\s+Número.*?(\d{13,})|(?:No\.|numero)\s*(\d+))", text, re.IGNORECASE | re.DOTALL)
     data["Numero Poliza"] = policy_match.group(1) if policy_match else "No encontrado"
     
-    #Cobertura y total a pagar
+    # Search coverage and total payable
     total_line_match = re.search(r"(\d+\.\d+)\s+\$\s+([\d.]+)\s+\$\s+([\d.]+)", text)
     if total_line_match:
         data["Cobertura"] = total_line_match.group(2)
@@ -289,6 +292,30 @@ def seg_mundial(text):
     
     return data
 
+def colpatria_axa(text):
+    data = {}
+    
+    name_match = re.search(r"Lesionado \(a\) : (.*)", text, re.IGNORECASE)
+    data["Nombres y Apellidos"] = name_match.group(1).strip() if name_match else None
+    
+    type_id = re.search(r"Tipo ID Lesionado : (.*)", text, re.IGNORECASE)
+    data["Tipo de identificación"] = type_id.group(1).strip() if type_id else None
+    
+    number_id = re.search(r"Numero de ID Lesionado : (.*)", text, re.IGNORECASE)
+    data["Numero de identificación"] = number_id.group(1).strip() if number_id else None
+    
+    accident_date = re.search(r"Fecha Ocurrencia : (.*)", text, re.IGNORECASE)
+    data["Fecha de incidente"] = accident_date.group(1).strip() if accident_date else None
+    
+    number_policy = re.search(r"No\. Póliza : (.*)", text, re.IGNORECASE)
+    data["Numero de Poliza"] = number_policy.group(1).strip() if number_policy else None
+    
+    status = re.search(r"(AGOTADO|NO AGOTADO)", text, re.IGNORECASE)
+    data["Estado de Cobertura"] = status.group(1).strip() if status else None
+    
+    return data
+
+# Extraction process 
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
         data = Mapfre(text)
@@ -310,6 +337,9 @@ def extract_data(text, pdf_file):
         return {**data, "Nombre archivo":pdf_file}
     elif re.search(r"SEGUROS MUNDIAL", text, re.IGNORECASE):
         data = seg_mundial(text)
+        return {**data, "Nombre archivo":pdf_file}
+    elif re.search(r"AXA COLPATRIA SEGUROS", text, re.IGNORECASE):
+        data = colpatria_axa(text)
         return {**data, "Nombre archivo":pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
