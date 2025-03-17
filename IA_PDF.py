@@ -268,7 +268,7 @@ def seg_mundial(text):
     
     #Search Names and Lastnames
     name_last_match = re.compile(
-        r"(?:^|\n)([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)(?:\s+GASTOS (?:DE|MEDICOS))(?:(?!GASTOS)[^\n]*)\n?([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)?",
+        r"(?:^|\n)(?!AGOTADA\b)([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)(?:\s+GASTOS (?:DE|MEDICOS))(?:(?!GASTOS)[^\n]*)\n?([A-ZÁÉÍÓÚÑ]+(?:\s+[A-ZÁÉÍÓÚÑ]+)*)?",
         re.MULTILINE | re.DOTALL)
     name_match = name_last_match.search(text)
     if name_match:
@@ -283,9 +283,25 @@ def seg_mundial(text):
     data["Estado Cobertura"] = status_match.group(1) if status_match else "No encontrado"
     
     #Search a policy Number
-    policy_match = re.search(r"(?P<poliza>\d{4}-\d{8}-)", text, re.IGNORECASE)
-    data["Numero de Poliza"] = policy_match.group().strip() if policy_match else "No encontrado"
-    
+    policy_match = re.search(r"""
+                        .*GASTOS\s+MEDICOS\s+               # Busca "GASTOS MEDICOS" en la línea (puede haber texto antes)
+    \d{1,2}\/\d{1,2}\/\d{2,4}\s+         # Fecha (formato flexible)
+    (?P<parte1>[0-9\-]+)                # Captura la primera parte del número de póliza
+    [^\n]*\n                          # Resto de la línea hasta el salto de línea
+    (?:[A-ZÁÉÍÓÚÑ\s]+)\s+              # Coincide con el nombre (en mayúsculas, ajusta si es necesario)
+    (?P<parte2>\d+) 
+                            """, 
+                            text,
+                            re.VERBOSE | re.MULTILINE)
+    if policy_match:
+        policy_number_one = policy_match.group("parte1")
+        policy_number_two = policy_match.group("parte2")
+        policy_number_complete = f"{policy_number_one} {policy_number_two}"
+        data["Numero de Poliza"] = policy_number_complete
+    else:
+        policy_number = "No encontrado"
+        data["Numero de Poliza"] = policy_number
+        
     #Search a Accident Date
     date_match = re.search("GASTOS MEDICOS\s+(\d{2}/\d{2}/\d{4})", text)
     data["Fecha Siniestro"] = date_match.group(1).strip() if date_match else "No encontrado"
