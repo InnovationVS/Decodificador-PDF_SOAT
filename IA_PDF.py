@@ -252,7 +252,7 @@ def bolivar(text):
     
     valor_pagado = int(data["Valor Pagado"].replace(".", ""))
     cobertura = int(data["Cobertura"].replace(".", ""))
-    if valor_pagado > cobertura:
+    if valor_pagado >= cobertura:
         data["Estado Cobertura"] = "AGOTADO"
     else:
         data["Estado Cobertura"] = "NO AGOTADO"
