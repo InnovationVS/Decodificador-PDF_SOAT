@@ -331,6 +331,52 @@ def colpatria_axa(text):
     
     return data
 
+def seg_estados(text):
+    data={}
+
+    afectado_match= re.search(r"AFECTADO\s+(\d+)-([^\n]+)", text, re.IGNORECASE)
+    if afectado_match:
+        data["Numero ID"] = afectado_match.group(1)
+        data["Nombre y Apellido"] = afectado_match.group(2)
+    else:
+        data["Nombre y Apellido"] = None
+        data["Numero ID"] = None
+
+    number_policy = re.search(r"No\.\s*(\d+)", text, re.IGNORECASE)
+    data["Numero de Poliza"] = number_policy.group(1) if number_policy else None
+
+    date = re.search(r"FECHA DE SINIESTRO\s+(\d{2}/\d{2}/\d{4})", text, re.IGNORECASE)
+    data["Fecha Siniestro"] = date.group(1) if date else None
+
+    coverage = re.search(r"ESTADO Cobertura\s+(.*?)(?=\n|$)", text, re.IGNORECASE)
+    data["Estado de Cobertura"] = coverage.group(1) if coverage else None
+
+    return data
+
+def solidaria(text):
+    data ={}
+
+    id_name_match = re.search(r"(CC|TI|CE|PE|NIT|AS|DE|MS|CN)\s+(\d+)\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(\d{2}-\d{2}-\d{4})", 
+                            text, re.IGNORECASE)
+    if id_name_match:
+        data["Nombre y Apellido"] = id_name_match.group(3).strip().title()
+        data["Tipo ID"] = id_name_match.group(1).strip().upper()
+        data["Numero ID"] = id_name_match.group(2).strip()
+        data["Fecha de Siniestro"] = id_name_match.group(4).strip()
+    else:
+        data["Nombre y Apellido"] = None
+        data["Tipo ID"] = None
+        data["Numero ID"] = None
+        data["Fecha de Siniestro"] = None
+    
+    coverage_match = re.search(r"Valor Disponible.*?(\bAGOTADO\b|\bNO AGOTADO\b)", text, re.DOTALL|re.IGNORECASE)
+    data["Estado de Cobertura"] = coverage_match.group(1).strip() if coverage_match else None
+
+    policy_match = re.search(r"Póliza Número\D+(\d+)", text)
+    data["Numero de Poliza"] = policy_match.group(1).strip() if policy_match else None
+
+    return data
+
 # Extraction process 
 def extract_data(text, pdf_file):
     if re.search(r"MAPFRE SEGUROS GENERALES DE COLOMBIA", text, re.IGNORECASE):
@@ -357,6 +403,12 @@ def extract_data(text, pdf_file):
     elif re.search(r"AXA COLPATRIA SEGUROS", text, re.IGNORECASE):
         data = colpatria_axa(text)
         return {**data, "Nombre archivo":pdf_file}
+    elif re.search(r"(?i)SEGUROS DEL ESTADO S\.A\.", text):
+        data = seg_estados(text)
+        return {**data, 'Nombre archivo':pdf_file}
+    elif re.search(r"ASEGURADORA SOLIDARIA DE COLOMBIA", text):
+        data = solidaria(text)
+        return {**data, 'Nombre archivo':pdf_file}
     else:
         raise ValueError("No se puedo identificar nombre de SOAT")
 
